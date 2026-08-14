@@ -41,16 +41,16 @@ export function ItemManager({ items }: { items: DbItem[] }) {
   return (
     <div className="ops-content">
       <div className="ops-section-head">
-        <div><p className="ops-kicker">Item master & public catalogue</p><h2>Manage products without editing code.</h2></div>
-        <span className="ops-badge">{publicItems.length} / 5 online</span>
+        <div><p className="ops-kicker">Item master & public catalogue</p><h2>Manage products.</h2></div>
+        <span className="ops-badge">{publicItems.length} online</span>
       </div>
 
-      <div className="ops-public-slots">
+      {/* <div className="ops-public-slots">
         {[1, 2, 3, 4, 5].map((position) => {
           const item = publicItems.find((entry) => entry.public_position === position);
           return <article key={position}><span>{String(position).padStart(2, "0")}</span><b>{item?.public_name || item?.description || "Empty public slot"}</b><small>{item?.sku || "Publish an item below"}</small></article>;
         })}
-      </div>
+      </div> */}
 
       <section className="ops-form-card">
         <div className="ops-form-title">
