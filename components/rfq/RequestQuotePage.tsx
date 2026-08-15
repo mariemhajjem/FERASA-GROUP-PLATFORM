@@ -15,7 +15,16 @@ type LineItem = {
 
 const blankItem = (id: number): LineItem => ({ id, manufacturer: "", partNumber: "", description: "", quantity: "1" });
 
-export function RequestQuotePage() {
+type RequestQuotePageProps = {
+  initialItem?: Pick<
+    LineItem,
+    "manufacturer" | "partNumber" | "description"
+  >;
+};
+
+export function RequestQuotePage({
+  initialItem,
+}: RequestQuotePageProps) {
   const [company, setCompany] = useState("");
   const [contact, setContact] = useState("");
   const [email, setEmail] = useState("");
@@ -25,7 +34,15 @@ export function RequestQuotePage() {
   const [requiredDate, setRequiredDate] = useState("");
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<string[]>([]);
-  const [items, setItems] = useState<LineItem[]>([blankItem(1)]);
+  const [items, setItems] = useState<LineItem[]>([
+    initialItem
+      ? {
+        id: 1,
+        ...initialItem,
+        quantity: "1",
+      }
+      : blankItem(1),
+  ]);
   const [submitting, setSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<{ success: boolean; message: string }>({ success: false, message: "" });
 
