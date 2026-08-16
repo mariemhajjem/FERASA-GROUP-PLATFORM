@@ -73,7 +73,29 @@ export async function saveItem(
   const id = textValue(formData, "id");
   const sku = textValue(formData, "sku").toUpperCase();
   const description = textValue(formData, "description");
-  if (!sku || !description) return fail("SKU and description are required.");
+
+  if (!sku || !description) {
+    return fail("SKU and description are required.");
+  }
+
+  const images = formData
+    .getAll("images")
+    .filter(
+      (value): value is File =>
+        value instanceof File && value.size > 0,
+    );
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+  for (const image of images) {
+    if (!allowedTypes.includes(image.type)) {
+      return fail(`${image.name} must be JPG, PNG or WebP.`);
+    }
+
+    if (image.size > 5 * 1024 * 1024) {
+      return fail(`${image.name} is larger than 5 MB.`);
+    }
+  }
 
   const payload = {
     sku,
@@ -86,19 +108,127 @@ export async function saveItem(
     unit: nullable(textValue(formData, "unit")),
     source_reference: nullable(textValue(formData, "source_reference")),
     public_name: nullable(textValue(formData, "public_name")),
-    image_url: nullable(textValue(formData, "image_url")),
     updated_at: new Date().toISOString(),
   };
 
-  const query = id
-    ? supabase.from("items").update(payload).eq("id", id)
-    : supabase.from("items").insert(payload);
-  const { error } = await query;
+  const result = id
+    ? await supabase
+        .from("items")
+        .update(payload)
+        .eq("id", id)
+        .select("id")
+        .single()
+    : await supabase
+        .from("items")
+        .insert(payload)
+        .select("id")
+        .single();
 
-  if (error) return fail(error.message);
+  if (result.error) return fail(result.error.message);
+
+  const itemId = result.data.id;
+
+  if (images.length > 0) {
+    const { data: currentImages, error: currentImagesError } =
+      await supabase
+        .from("item_images")
+        .select("id, position, is_primary")
+        .eq("item_id", itemId)
+        .order("position", { ascending: false });
+
+    if (currentImagesError) {
+      return fail(
+        `Item saved, but images could not be checked: ${currentImagesError.message}`,
+      );
+    }
+
+    const hasPrimary =
+      currentImages?.some((image) => image.is_primary) ?? false;
+
+    let nextPosition =
+      currentImages && currentImages.length > 0
+        ? Number(currentImages[0].position) + 1
+        : 1;
+
+    const uploaded: Array<{ path: string; url: string }> = [];
+
+    for (const image of images) {
+      const safeName =
+        image.name
+          .toLowerCase()
+          .replace(/[^a-z0-9._-]+/g, "-") || "image";
+
+      const storagePath =
+        `${sku.toLowerCase()}/${crypto.randomUUID()}-${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(storagePath, image, {
+          contentType: image.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        if (uploaded.length > 0) {
+          await supabase.storage
+            .from("product-images")
+            .remove(uploaded.map((file) => file.path));
+        }
+
+        return fail(
+          `Item saved, but image upload failed: ${uploadError.message}`,
+        );
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(storagePath);
+
+      uploaded.push({
+        path: storagePath,
+        url: publicUrlData.publicUrl,
+      });
+    }
+
+    const imageRows = uploaded.map((image, index) => ({
+      item_id: itemId,
+      image_url: image.url,
+      alt_text: description,
+      position: nextPosition++,
+      is_primary: !hasPrimary && index === 0,
+    }));
+
+    const { error: imageInsertError } = await supabase
+      .from("item_images")
+      .insert(imageRows);
+
+    if (imageInsertError) {
+      await supabase.storage
+        .from("product-images")
+        .remove(uploaded.map((file) => file.path));
+
+      return fail(
+        `Item saved, but images could not be linked: ${imageInsertError.message}`,
+      );
+    }
+
+    if (!hasPrimary && uploaded[0]) {
+      await supabase
+        .from("items")
+        .update({ image_url: uploaded[0].url })
+        .eq("id", itemId);
+    }
+  }
+
   refreshOperations();
   revalidatePath("/");
-  return ok(id ? "Item updated successfully." : "Item created successfully.");
+  revalidatePath(`/products/${sku.toLowerCase()}`);
+
+  return ok(
+    id
+      ? "Item and images updated successfully."
+      : "Item and images created successfully.",
+  );
 }
 
 export async function setPublicProduct(itemId: string, makePublic: boolean): Promise<ActionState> {

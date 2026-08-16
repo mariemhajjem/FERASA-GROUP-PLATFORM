@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ProductGallery } from "@/components/catalogue/ProductGallery";
 import { publicPath } from "@/utils/public-path";
 import { getPublicProductBySku } from "@/utils/public-products-server";
 
@@ -24,11 +25,10 @@ export async function generateMetadata({
   }
 
   const description =
-    `${product.original} ${
-      product.partNumber
-        ? `Part number: ${product.partNumber}.`
-        : ""
-    }`.slice(0, 155);
+    `${product.original} ${product.partNumber
+      ? `Part number: ${product.partNumber}.`
+      : ""
+      }`.slice(0, 155);
 
   const canonical =
     `${siteUrl}/products/${encodeURIComponent(
@@ -46,12 +46,12 @@ export async function generateMetadata({
       type: "website",
       images: product.image
         ? [
-            {
-              url: product.image.startsWith("http")
-                ? product.image
-                : `${siteUrl}${product.image}`,
-            },
-          ]
+          {
+            url: product.image.startsWith("http")
+              ? product.image
+              : `${siteUrl}${product.image}`,
+          },
+        ]
         : undefined,
     },
   };
@@ -86,17 +86,23 @@ export default async function ProductPage({
     mpn: product.partNumber || undefined,
     brand: product.brand
       ? {
-          "@type": "Brand",
-          name: product.brand,
-        }
+        "@type": "Brand",
+        name: product.brand,
+      }
       : undefined,
     category: product.category,
-    image: product.image
-      ? product.image.startsWith("http")
-        ? product.image
-        : `${siteUrl}${product.image}`
-      : undefined,
-    url: productUrl,
+    image:
+      product.images && product.images.length > 0
+        ? product.images.map((image) =>
+          image.url.startsWith("http")
+            ? image.url
+            : `${siteUrl}${image.url}`,
+        )
+        : product.image
+          ? product.image.startsWith("http")
+            ? product.image
+            : `${siteUrl}${product.image}`
+          : undefined,
   };
 
   return (
@@ -143,19 +149,11 @@ export default async function ProductPage({
         </nav>
 
         <article className="product-detail-layout">
-          <div className="product-detail-visual">
-            {product.image ? (
-              <img
-                src={publicPath(product.image)}
-                alt={product.name}
-              />
-            ) : (
-              <span className="image-placeholder">
-                <b>FERASA</b>
-                Image on request
-              </span>
-            )}
-          </div>
+          <ProductGallery
+            productName={product.name}
+            primaryImage={product.image}
+            images={product.images}
+          />
 
           <div className="product-detail-copy">
             <p className="eyebrow dark">
