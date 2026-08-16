@@ -1,12 +1,6 @@
 # FERASA Platform — Version 1
 
-> Final setup: see [`docs/SETUP_V1.md`](docs/SETUP_V1.md). Run the single named Supabase migration `15 - Complete FERASA V1 Operations and Public Catalogue` before using the completed management modules.
-
-FERASA Oil & Technical Services public website plus the V1 operational foundation for item master, inventory, global search, RFQs, suppliers and sourcing.
-
-This package is based on the previous FERASA GitHub Pages website and keeps its catalogue, corporate sections, project imagery, downloads and responsive visual system.
-
-## What changed in V1
+FERASA Oil & Technical Services public website for item master, inventory, global search, RFQs, suppliers and sourcing.
 
 ### Public website
 
@@ -33,7 +27,6 @@ Modules:
 
 The current 535-record product catalogue is reused as the initial searchable Item Master. Inventory quantities are intentionally blank until FERASA imports verified warehouse balances.
 
-> Important: GitHub Pages is static hosting. The `/operations/` route in this package is a UI/data-model preview, not a secure production back office. Do not store live FERASA business records in browser localStorage or expose real internal data through the static site.
 
 ## Production architecture direction
 
@@ -47,17 +40,6 @@ V1 is designed to move to:
 - Public website on `ferasa.net`
 - Future client portal on `portal.ferasa.net`
 
-A PostgreSQL foundation schema is included in:
-
-```text
-database/v1-schema.sql
-```
-
-Business/product requirements are documented in:
-
-```text
-docs/V1_REQUIREMENTS.md
-```
 
 ## Requirements
 
@@ -86,26 +68,6 @@ Useful routes:
 ```bash
 npm run build
 ```
-
-## Publish the public/static preview with GitHub Pages
-
-The included `.github/workflows/deploy-pages.yml` builds and publishes the static site whenever `main` is updated.
-
-In GitHub: **Settings → Pages → Source → GitHub Actions**.
-
-## WhatsApp configuration
-
-Do not guess or reuse a landline number as WhatsApp.
-
-Set FERASA's verified WhatsApp-enabled mobile number in international format, digits only:
-
-```bash
-NEXT_PUBLIC_WHATSAPP_NUMBER=2189XXXXXXXX
-```
-
-When the variable is empty, the WhatsApp floating button is hidden.
-
-For GitHub Pages, add this variable to the workflow `env:` block only after the correct business WhatsApp number is confirmed.
 
 ## Main structure
 
@@ -154,9 +116,3 @@ Supplier Item ← Supplier
     ↓
 Sourcing Record
 ```
-
-Later quotation, order, shipping and client-portal modules attach to these records rather than replacing them.
-
-## Deferred intentionally
-
-V1 does **not** implement a full quotation engine, client portal, PO workflow, shipping workflow or accounting. Their data boundaries are reserved so they can be added later without rebuilding the core platform.
